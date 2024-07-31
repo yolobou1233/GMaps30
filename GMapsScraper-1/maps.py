@@ -22,27 +22,14 @@ class GMapsScraper:
 
     def arg_parser(self):
         parser = ArgumentParser(description='Command Line Google Map Scraper by Abdul Moez')
-
-        # Input options
-        parser.add_argument('-l', '--limit', help='Number of results to scrape (-1 for all results, default: 500)',
-                            type=int, default=200)
-        parser.add_argument('-u', '--unavailable-text',
-                            help='Replacement text for unavailable information (default: "Not Available")', type=str,
-                            default="Not Available")
-        parser.add_argument('-bw', '--browser-wait', help='Browser waiting time in seconds (default: 15)', type=int,
-                            default=15)
-        parser.add_argument('-se', '--suggested-ext',
-                            help='Suggested URL extensions to try (can be specified multiple times)', action='append',
-                            default=[])
-        parser.add_argument('-wb', '--windowed-browser', help='Disable headless mode', action='store_false',
-                            default=True)
+        parser.add_argument('-l', '--limit', help='Number of results to scrape (-1 for all results, default: 200)', type=int, default=200)
+        parser.add_argument('-u', '--unavailable-text', help='Replacement text for unavailable information (default: "Not Available")', type=str, default="Not Available")
+        parser.add_argument('-bw', '--browser-wait', help='Browser waiting time in seconds (default: 15)', type=int, default=15)
+        parser.add_argument('-se', '--suggested-ext', help='Suggested URL extensions to try (can be specified multiple times)', action='append', default=[])
+        parser.add_argument('-wb', '--windowed-browser', help='Disable headless mode', action='store_false', default=True)
         parser.add_argument('-v', '--verbose', help='Enable verbose mode', action='store_true')
-        parser.add_argument('-o', '--output-folder', help='Output folder to store CSV details (default: ./CSV_FILES)',
-                            type=str, default='./CSV_FILES')
-        parser.add_argument('-d', '--driver-path',
-                            help='Path to Chrome driver (if not provided, it will be downloaded)', type=str,
-                            default='')
-
+        parser.add_argument('-o', '--output-folder', help='Output folder to store CSV details (default: ./CSV_FILES)', type=str, default='./CSV_FILES')
+        parser.add_argument('-d', '--driver-path', help='Path to Chrome driver (if not provided, it will be downloaded)', type=str, default='')
         self._args = parser.parse_args()
 
     def scrape_maps_data(self, query):
@@ -55,8 +42,7 @@ class GMapsScraper:
                 driver_path = ChromeDriverManager().install()
             except ValueError:
                 self.logger.error("Not able to download the driver which is compatible with your browser.")
-                self.logger.info("Head to this site (https://chromedriver.chromium.org/downloads)"
-                                 " and find your version driver and pass it with argument -d.")
+                self.logger.info("Head to this site (https://chromedriver.chromium.org/downloads) and find your version driver and pass it with argument -d.")
                 return
 
         print_lock = Lock()
@@ -66,7 +52,7 @@ class GMapsScraper:
             wait_time=self._args.browser_wait,
             suggested_ext=self._args.suggested_ext,
             output_path=self._args.output_folder,
-            workers=10,  # Increase number of workers for parallel processing
+            workers=10,
             result_range=limit_results,
             verbose=self._args.verbose,
             driver_path=driver_path,
@@ -74,10 +60,14 @@ class GMapsScraper:
         )
 
         def update_result_count(count):
-            self.result_count = count
+            if self.result_count + count > limit_results:
+                count = limit_results - self.result_count
+            self.result_count += count
             result_label.config(text=f"Results Scraped: {self.result_count}")
             progress_bar['value'] = (self.result_count / limit_results) * 100
             root.update_idletasks()
+            if self.result_count >= limit_results:
+                self.stop_event.set()
 
         def scrape_with_update():
             try:
@@ -93,30 +83,14 @@ class GMapsScraper:
         root = tk.Tk()
         root.title("Google Maps Scraper")
         root.geometry("600x400")
-        root.configure(bg='#F0F0F0')  # Light gray background for a modern look
+        root.configure(bg='#F0F0F0')
 
         style = ttk.Style()
-        style.configure('TButton',
-                        padding=10,
-                        relief='flat',
-                        font=('Segoe UI', 12, 'bold'))
-        
-        # Configure the Start Scraper button style
-        style.configure('StartButton.TButton',
-                        background='#2196F3',  # Blue background
-                        foreground='black')
-        style.map('StartButton.TButton',
-                  background=[('active', '#1976D2')],  # Darker blue on hover
-                  foreground=[('active', 'white')])
-        
-        # Configure the Stop Scraper button style
-        style.configure('StopButton.TButton',
-                        background='#F44336',  # Red background
-                        foreground='black')
-        style.map('StopButton.TButton',
-                  background=[('active', '#D32F2F')],  # Darker red on hover
-                  foreground=[('active', 'white')])
-        
+        style.configure('TButton', padding=10, relief='flat', font=('Segoe UI', 12, 'bold'))
+        style.configure('StartButton.TButton', background='#2196F3', foreground='black')
+        style.map('StartButton.TButton', background=[('active', '#1976D2')], foreground=[('active', 'white')])
+        style.configure('StopButton.TButton', background='#F44336', foreground='black')
+        style.map('StopButton.TButton', background=[('active', '#D32F2F')], foreground=[('active', 'white')])
         style.configure('TLabel', background='#F0F0F0', foreground='black', font=('Segoe UI', 12, 'bold'))
         style.configure('TEntry', padding=10, relief='flat', font=('Segoe UI', 12))
         style.configure('TProgressbar', troughcolor='#BDBDBD', background='#2196F3', thickness=20)
@@ -130,7 +104,7 @@ class GMapsScraper:
 
         ttk.Label(frame, text="Limit (number of results):").grid(row=1, column=0, padx=10, pady=10, sticky=tk.W)
         limit_entry = ttk.Entry(frame, width=10)
-        limit_entry.insert(0, "200")  # Default value
+        limit_entry.insert(0, "200")
         limit_entry.grid(row=1, column=1, padx=10, pady=10)
 
         global result_label
@@ -151,7 +125,7 @@ class GMapsScraper:
                 status_label.config(text=f"Status: {emojis[count % len(emojis)]}")
                 count += 1
                 root.update_idletasks()
-                time.sleep(0.2)  # Reduced sleep time for faster updates
+                time.sleep(0.2)
 
         def on_start_click():
             query = query_entry.get()
@@ -167,16 +141,16 @@ class GMapsScraper:
         def on_stop_click():
             self.stop_event.set()
             if self.scraping_thread and self.scraping_thread.is_alive():
-                self.scraping_thread.join(timeout=10)  # Ensure scraping thread stops
+                self.scraping_thread.join(timeout=10)
             if self.status_thread and self.status_thread.is_alive():
-                self.status_thread.join(timeout=10)  # Ensure status thread stops
+                self.status_thread.join(timeout=10)
 
         def on_close():
             self.stop_event.set()
             if self.scraping_thread and self.scraping_thread.is_alive():
-                self.scraping_thread.join(timeout=10)  # Ensure scraping thread stops
+                self.scraping_thread.join(timeout=10)
             if self.status_thread and self.status_thread.is_alive():
-                self.status_thread.join(timeout=10)  # Ensure status thread stops
+                self.status_thread.join(timeout=10)
             root.destroy()
 
         root.protocol("WM_DELETE_WINDOW", on_close)
@@ -187,7 +161,6 @@ class GMapsScraper:
         stop_button = ttk.Button(frame, text="Stop Scraper", style='StopButton.TButton', command=on_stop_click)
         stop_button.grid(row=5, column=1, pady=20, sticky=tk.EW)
 
-        # Add some padding to the grid cells
         for widget in frame.winfo_children():
             widget.grid_configure(padx=10, pady=5)
 

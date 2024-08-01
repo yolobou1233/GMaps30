@@ -21,6 +21,7 @@ from threading import Lock
 
 class GoogleMaps:
     _maps_url = "https://www.google.com/maps"
+    temp_list = []
 
     def __init__(self, driver_path: str, unavailable_text: str = "Not Available", headless: bool = False,
                  wait_time: int = 15, suggested_ext: list = None, output_path: str = "./CSV_FILES",
@@ -106,7 +107,13 @@ class GoogleMaps:
 
         return lat_lng[0], lat_lng[1], get_link
 
-    def get_title(self, driver):
+    def get_title(self, result, driver):
+        if result != "continue":
+            get_link = result.get_attribute("href")
+            driver.execute_script(f'''window.open("{get_link}", "_blank");''')
+            driver.switch_to.window(driver.window_handles[-1])
+        else:
+            get_link = driver.current_url
         try:
             title = driver.find_element(By.CSS_SELECTOR, '#QA0Szd > div > div > div.w6VYqd > div.bJzME.tTVLSc > div > '
                                                          'div.e07Vkf.kA9KIf > div > div > div.TIHn2 > div > '
@@ -207,14 +214,14 @@ class GoogleMaps:
             return
         temp_data = {}
 
-        if self._verbose:
-            self._print.print_with_lock(query=query, status="Getting Latitude and longitude", mode=mode,
-                                        results_indices=results_indices)
-        lat, long, map_link = self.validate_result_link(result, driver)
+        # if self._verbose:
+        #     self._print.print_with_lock(query=query, status="Getting Latitude and longitude", mode=mode,
+        #                                 results_indices=results_indices)
+        # map_link = self.validate_result_link(result, driver)
 
         if self._verbose:
             self._print.print_with_lock(query=query, status="Getting title", mode=mode, results_indices=results_indices)
-        card_title = self.get_title(driver)
+        card_title = self.get_title(result,driver)
 
         if self._verbose:
             self._print.print_with_lock(query=query, status="Getting rating", mode=mode, results_indices=results_indices)
@@ -233,9 +240,9 @@ class GoogleMaps:
             self._print.print_with_lock(query=query, status="Getting Phone Number", mode=mode, results_indices=results_indices)
         card_phone_number = self.get_phone_number(driver)
 
-        if self._verbose:
-            self._print.print_with_lock(query=query, status="Getting About data", mode=mode, results_indices=results_indices)
-        card_about = self.get_about_description(driver)
+        # if self._verbose:
+        #     self._print.print_with_lock(query=query, status="Getting About data", mode=mode, results_indices=results_indices)
+        # card_about = self.get_about_description(driver)
 
         if self._verbose:
             self._print.print_with_lock(query=query, status="Resetting Driver", mode=mode, results_indices=results_indices)
@@ -245,20 +252,14 @@ class GoogleMaps:
             self._print.print_with_lock(query=query, status="Storing Data in List", mode=mode, results_indices=results_indices)
 
         temp_data["title"] = card_title
-        temp_data["map_link"] = map_link
+        # temp_data["map_link"] = map_link
         temp_data["rating"] = card_rating
         temp_data["webpage"] = card_website_link
         temp_data["phone_number"] = card_phone_number
-        temp_data["latitude"] = lat
-        temp_data["longitude"] = long
         temp_data.update(website_data)
-        temp_data.update(card_about)
+        # temp_data.update(card_about)
 
-        temp_list = [temp_data]
-        if self._verbose:
-            self._print.print_with_lock(query=query, status="Dumping data in CSV file", mode=mode)
-        self._csv_creator.create_csv(list_of_dict_data=temp_list)
-
+        GoogleMaps.temp_list.append(temp_data)
         update_callback(results_indices[1])
 
     def start_scrapper(self, query: str, update_callback, stop_flag) -> None:
@@ -284,15 +285,19 @@ class GoogleMaps:
                 self._print.print_with_lock(query=query, status="Loading Links from GMAPS", mode=mode)
 
             results = self.scroll_to_the_end_event(driver)
+            
             result_indices = [len(results), 1]
             for result in results:
                 self._scrape_result_and_store(driver=driver, mode=mode, result=result, query=query, 
                                               results_indices=result_indices, update_callback=update_callback, stop_flag=stop_flag)
                 result_indices[1] += 1
-
                 if stop_flag():
                     break
-
+            if self._verbose:
+                self._print.print_with_lock(query=query, status="Dumping data in CSV file", mode=mode)
+            
+            self._csv_creator.create_csv(list_of_dict_data=GoogleMaps.temp_list)        
+            
             if self._verbose:
                 self._print.print_with_lock(query=query, status="Driver Closed", mode=mode)
             driver.close()

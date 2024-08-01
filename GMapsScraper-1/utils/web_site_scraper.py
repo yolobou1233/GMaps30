@@ -7,11 +7,11 @@ class PatternScraper:
     def __init__(self):
         self._last_opened_handler = None
         self._email_pattern = compile(r'([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)*')
-        self._fb_pattern = compile(r'(?:https?://)?(?:www\.)?facebook\.com/\S+')
-        self._twitter_pattern = compile(r'(?:https?://)?(?:www\.)?twitter\.com/\S+')
-        self._insta_pattern = compile(r'(?:https?://)?(?:www\.)?instagram\.com/\S+')
-        self._youtube_pattern = compile(r'(?:https?://)?(?:www\.)?youtube\.com/\S+')
-        self._linkedin_pattern = compile(r'(?:https?://)?(?:www\.)?linkedin\.com/\S+')
+        # self._fb_pattern = compile(r'(?:https?://)?(?:www\.)?facebook\.com/\S+')
+        # self._twitter_pattern = compile(r'(?:https?://)?(?:www\.)?twitter\.com/\S+')
+        # self._insta_pattern = compile(r'(?:https?://)?(?:www\.)?instagram\.com/\S+')
+        # self._youtube_pattern = compile(r'(?:https?://)?(?:www\.)?youtube\.com/\S+')
+        # self._linkedin_pattern = compile(r'(?:https?://)?(?:www\.)?linkedin\.com/\S+')
 
     @staticmethod
     def create_urls(site_url: str, url_ext: list):
@@ -60,8 +60,7 @@ class PatternScraper:
         return email_list
 
     def get_pattern_data(self, source_codes: list):
-        patterns_data = {"site_email": [], "facebook_links": [], "twitter_links": [], "instagram_links": [],
-                         "youtube_links": [], "linkedin_links": []}
+        patterns_data = {"site_email": []}
 
         for source in source_codes:
             soup = BeautifulSoup(source, features="lxml", parser="html.parser")
@@ -71,23 +70,22 @@ class PatternScraper:
                 href_emails = self._href_emails(soup)
                 site_email.extend(href_emails)
 
-            facebook_links = [link['href'] for link in soup.find_all('a', href=self._fb_pattern)]
-            twitter_links = [link['href'] for link in soup.find_all('a', href=self._twitter_pattern)]
-            instagram_links = [link['href'] for link in soup.find_all('a', href=self._insta_pattern)]
-            youtube_links = [link['href'] for link in soup.find_all('a', href=self._youtube_pattern)]
-            linkedin_links = [link['href'] for link in soup.find_all('a', href=self._linkedin_pattern)]
+            # facebook_links = [link['href'] for link in soup.find_all('a', href=self._fb_pattern)]
+            # twitter_links = [link['href'] for link in soup.find_all('a', href=self._twitter_pattern)]
+            # instagram_links = [link['href'] for link in soup.find_all('a', href=self._insta_pattern)]
+            # youtube_links = [link['href'] for link in soup.find_all('a', href=self._youtube_pattern)]
+            # linkedin_links = [link['href'] for link in soup.find_all('a', href=self._linkedin_pattern)]
 
             patterns_data["site_email"].extend(site_email)
-            patterns_data["facebook_links"].extend(facebook_links)
-            patterns_data["twitter_links"].extend(twitter_links)
-            patterns_data["instagram_links"].extend(instagram_links)
-            patterns_data["youtube_links"].extend(youtube_links)
-            patterns_data["linkedin_links"].extend(linkedin_links)
+            # patterns_data["facebook_links"].extend(facebook_links)
+            # patterns_data["twitter_links"].extend(twitter_links)
+            # patterns_data["instagram_links"].extend(instagram_links)
+            # patterns_data["youtube_links"].extend(youtube_links)
+            # patterns_data["linkedin_links"].extend(linkedin_links)
         return patterns_data
 
     def find_patterns(self, driver: WebDriver, site_url: str, suggested_ext: list, unavailable: str = "Not Available"):
-        patterns_data = {"site_email": "", "facebook_links": "", "twitter_links": "", "instagram_links": "",
-                         "youtube_links": "", "linkedin_links": ""}
+        patterns_data = {"site_email": ""}
 
         if site_url == unavailable or not suggested_ext:
             return {key: unavailable for key in patterns_data}

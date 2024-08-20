@@ -209,8 +209,10 @@ class GoogleMaps:
 
         return results
 
-    def _scrape_result_and_store(self, driver, mode, result, query, results_indices, update_callback, stop_flag):
-        if stop_flag():
+    def _scrape_result_and_store(self, driver, mode, result, query, results_indices, update_callback, stop_flag, lenn):
+        # if stop_flag():
+        #     return
+        if len(GoogleMaps.temp_list) == lenn:
             return
         temp_data = {}
 
@@ -289,9 +291,9 @@ class GoogleMaps:
             result_indices = [len(results), 1]
             for result in results:
                 self._scrape_result_and_store(driver=driver, mode=mode, result=result, query=query, 
-                                              results_indices=result_indices, update_callback=update_callback, stop_flag=stop_flag)
+                                              results_indices=result_indices, update_callback=update_callback, stop_flag=stop_flag, lenn = len(results))
                 result_indices[1] += 1
-                if stop_flag():
+                if len(GoogleMaps.temp_list) == len(results):
                     break
             if self._verbose:
                 self._print.print_with_lock(query=query, status="Dumping data in CSV file", mode=mode)
@@ -307,4 +309,4 @@ class GoogleMaps:
         except Exception as e:
             if self._verbose:
                 self._print.print_with_lock(query=query, status=f"Error: {str(e)}", mode=mode)
-            self.logger.error(f"An error occurred: {e}")
+            self.logger.error(f"An error occurred: {e}") 
